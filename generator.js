@@ -2,13 +2,16 @@
 exports.__esModule = true;
 var path = require("path");
 var ts_simple_ast_1 = require("ts-simple-ast");
-console.log(__dirname);
 var UnionGenerator = /** @class */ (function () {
     function UnionGenerator(options) {
         this.project = new ts_simple_ast_1.Project();
         this.options = options;
         this.project.addExistingSourceFiles(options.fileGlobs);
     }
+    UnionGenerator.prototype.apply = function (compiler) {
+        var _this = this;
+        compiler.hooks.compile.tap('WebpackUnionGenerator', function () { return _this.generate(); });
+    };
     UnionGenerator.prototype.generate = function () {
         var outputFolder = path.dirname(this.options.outputFile);
         var sourceFiles = this.project.getSourceFiles();
@@ -42,7 +45,6 @@ var UnionGenerator = /** @class */ (function () {
                 name: this.options.unionName
             });
         var t = types.map(function (i) { return i.getName(); }).join(' | ');
-        console.log(t);
         type.setIsExported(true);
         type.setType(t);
         outputFile.organizeImports();
@@ -51,9 +53,3 @@ var UnionGenerator = /** @class */ (function () {
     return UnionGenerator;
 }());
 exports["default"] = UnionGenerator;
-// let thing = new UnionGenerator({
-//     fileGlobs: '../src/components',
-//     outputFile: '../src/components/Generated.ts',
-//     unionName: 'C'
-// })
-// thing.generate();

@@ -4,6 +4,7 @@
         "sourceMap": true,
         "noImplicitAny": false,
         "module": "commonjs",
+        "moduleResolution": "node",
         "target": "es2016",
     },
     "include": [

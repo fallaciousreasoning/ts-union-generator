@@ -1,9 +1,6 @@
 import path = require('path');
 import { ClassDeclaration, InterfaceDeclaration, Project } from 'ts-simple-ast';
 
-declare const __dirname;
-console.log(__dirname);
-
 interface Options {
     fileGlobs: (string[]) | string;
     unionName: string;
@@ -17,6 +14,13 @@ export default class UnionGenerator {
     constructor(options: Options) {
         this.options = options;
         this.project.addExistingSourceFiles(options.fileGlobs);
+    }
+
+    apply(compiler) {
+      compiler.hooks.compile.tap(
+        'WebpackUnionGenerator',
+        () => this.generate()
+      );
     }
 
     generate() {
@@ -62,7 +66,6 @@ export default class UnionGenerator {
             });
 
         const t = types.map(i => i.getName()).join(' | ');
-        console.log(t);
         type.setIsExported(true);
         type.setType(t);
        
@@ -71,10 +74,3 @@ export default class UnionGenerator {
 
     }
 }
-
-// let thing = new UnionGenerator({
-//     fileGlobs: '../src/components',
-//     outputFile: '../src/components/Generated.ts',
-//     unionName: 'C'
-// })
-// thing.generate();
