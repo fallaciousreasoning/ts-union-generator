@@ -10,7 +10,7 @@ interface Options {
     outputFile: string;
 }
 
-class UnionGenerator {
+export default class UnionGenerator {
     options: Options;
     project: Project = new Project();
 
@@ -72,9 +72,9 @@ class UnionGenerator {
     }
 }
 
-let thing = new UnionGenerator({
-    fileGlobs: '../src/components',
-    outputFile: '../src/components/Generated.ts',
-    unionName: 'C'
-})
-thing.generate();
+// let thing = new UnionGenerator({
+//     fileGlobs: '../src/components',
+//     outputFile: '../src/components/Generated.ts',
+//     unionName: 'C'
+// })
+// thing.generate();
