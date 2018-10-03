@@ -9,23 +9,26 @@ interface Options {
 
 export default class UnionGenerator {
     options: Options;
-    project: Project = new Project();
 
     constructor(options: Options) {
         this.options = options;
-        this.project.addExistingSourceFiles(options.fileGlobs);
     }
 
     apply(compiler) {
-      compiler.hooks.compile.tap(
-        'WebpackUnionGenerator',
-        () => this.generate()
-      );
+        compiler.hooks.beforeCompile.tap(
+            'WebpackUnionGenerator',
+            (compilation) => {
+                this.generate();
+            }
+        );
     }
 
     generate() {
+        const project = new Project();
+        project.addExistingSourceFiles(this.options.fileGlobs);
+
         const outputFolder = path.dirname(this.options.outputFile);
-        const sourceFiles = this.project.getSourceFiles();
+        const sourceFiles = project.getSourceFiles();
 
         const interfaces = sourceFiles
             .reduce((prev, next) => [...prev, ...next.getInterfaces().filter(i => i.isExported)], <InterfaceDeclaration[]>[]);
@@ -33,11 +36,34 @@ export default class UnionGenerator {
         const classes = sourceFiles
             .reduce((prev, next) => [...prev, ...next.getClasses()], <ClassDeclaration[]>[]);
 
-
         const types = [...interfaces, ...classes];
-            
-        const outputFile = this.project.getSourceFile(this.options.outputFile)
-            || this.project.createSourceFile(this.options.outputFile);
+
+        const outputFile = project.getSourceFile(this.options.outputFile)
+            || project.createSourceFile(this.options.outputFile);
+
+        let generatedType = outputFile.getTypeAlias(this.options.unionName);
+        // If we have already generated all we need, return.
+        if (generatedType) {
+            const typeStrings = generatedType
+                .getTypeNode()
+                .getFullText()
+                .trim()
+                .split(' | ');
+
+            const filtered = typeStrings
+                .filter(name => {
+                    if (types.some(ty => ty.getName() == name)) {
+                        return false;
+                    } else {
+                        console.log(name);
+                        return true;
+                    }
+                });
+
+            if (typeStrings.length == types.length && filtered.length === 0) {
+                return;
+            }
+        }
 
         outputFile.getImportDeclarations().forEach(i => i.remove());
 
@@ -48,7 +74,7 @@ export default class UnionGenerator {
 
             importPath = importPath.substr(0, importPath.lastIndexOf('.'));
 
-            const declaration = outputFile.addImportDeclaration({ 
+            const declaration = outputFile.addImportDeclaration({
                 moduleSpecifier: importPath,
             });
 
@@ -59,16 +85,17 @@ export default class UnionGenerator {
             }
         }
 
-        let type = outputFile.getTypeAlias(this.options.unionName)
-            || outputFile.addTypeAlias({
+        if (!generatedType) {
+            generatedType = outputFile.addTypeAlias({
                 type: '',
                 name: this.options.unionName,
             });
+        }
 
         const t = types.map(i => i.getName()).join(' | ');
-        type.setIsExported(true);
-        type.setType(t);
-       
+        generatedType.setIsExported(true);
+        generatedType.setType(t);
+
         outputFile.organizeImports();
         outputFile.saveSync();
 
