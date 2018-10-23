@@ -13,6 +13,7 @@ var UnionGenerator = /** @class */ (function () {
         });
     };
     UnionGenerator.prototype.generate = function () {
+        var _this = this;
         var project = new ts_simple_ast_1.Project();
         project.addExistingSourceFiles(this.options.fileGlobs);
         var outputFolder = path.dirname(this.options.outputFile);
@@ -21,7 +22,9 @@ var UnionGenerator = /** @class */ (function () {
             .reduce(function (prev, next) { return prev.concat(next.getInterfaces().filter(function (i) { return i.isExported; })); }, []);
         var classes = sourceFiles
             .reduce(function (prev, next) { return prev.concat(next.getClasses()); }, []);
-        var types = interfaces.concat(classes);
+        var ts = sourceFiles
+            .reduce(function (prev, next) { return prev.concat(next.getTypeAliases()); }, []);
+        var types = interfaces.concat(classes, ts).filter(function (t) { return t.isExported() && t.getName() !== _this.options.unionName; });
         var outputFile = project.getSourceFile(this.options.outputFile)
             || project.createSourceFile(this.options.outputFile);
         var generatedType = outputFile.getTypeAlias(this.options.unionName);

@@ -1,5 +1,5 @@
 import path = require('path');
-import { ClassDeclaration, InterfaceDeclaration, Project } from 'ts-simple-ast';
+import { ClassDeclaration, InterfaceDeclaration, Project, TypeAliasDeclaration } from 'ts-simple-ast';
 
 interface Options {
     fileGlobs: (string[]) | string;
@@ -36,7 +36,10 @@ export default class UnionGenerator {
         const classes = sourceFiles
             .reduce((prev, next) => [...prev, ...next.getClasses()], <ClassDeclaration[]>[]);
 
-        const types = [...interfaces, ...classes];
+        const ts = sourceFiles
+            .reduce((prev, next) => [...prev, ...next.getTypeAliases()], <TypeAliasDeclaration[]>[]);
+
+        const types = [...interfaces, ...classes, ...ts].filter(t => t.isExported() && t.getName() !== this.options.unionName);
 
         const outputFile = project.getSourceFile(this.options.outputFile)
             || project.createSourceFile(this.options.outputFile);
@@ -69,6 +72,7 @@ export default class UnionGenerator {
 
         for (const t of types) {
             let name = t.getName();
+
             let importPath = t.getSourceFile().getFilePath();
             importPath = './' + path.relative(outputFolder, importPath);
 
